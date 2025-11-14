@@ -1,0 +1,11 @@
+data:
+  root_dir: ./data
+model:
+  conv1_out_channels: 16
+  conv2_out_channels: 32
+  fc1_out_features: 128
+  fc2_out_features: 10
+training:
+  batch_size: 64
+  learning_rate: 0.0
+  num_epochs: 5
