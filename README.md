@@ -1,2 +1,6 @@
 # ia_coach
-first version of the coach application
+
+## train your models via a GUI
+
+![picture of the gui](/pictures/readme_1.png)
+
