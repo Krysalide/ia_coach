@@ -4,6 +4,9 @@ import pandas as pd
 # Removed numpy as it was unused
 import train_script # CHANGE: Import the entire module to resolve potential path/import issues
 
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # --- Gradio UI Logic ---
 
 # Store results for plotting
@@ -366,16 +369,41 @@ with gr.Blocks(title="PyTorch CNN Training UI") as demo:
                         interactive=False
                     )
                     
+                    # with gr.Row():
+                    #     remove_last_btn = gr.Button("⬆️ Remove Last Layer", variant="secondary")
+                    #     generate_code_btn = gr.Button("💾 Generate PyTorch Code", variant="primary")
+                    
+                    # code_output = gr.Code(
+                    #     label="Generated PyTorch Model Code",
+                    #     language="python",
+                    #     value="# Your model code will appear here",
+                    #     lines=15
+                    # )
                     with gr.Row():
                         remove_last_btn = gr.Button("⬆️ Remove Last Layer", variant="secondary")
                         generate_code_btn = gr.Button("💾 Generate PyTorch Code", variant="primary")
-                    
+
+                    # Code display
                     code_output = gr.Code(
                         label="Generated PyTorch Model Code",
                         language="python",
                         value="# Your model code will appear here",
                         lines=15
                     )
+
+                    # NEW: Download button
+                    download_btn = gr.DownloadButton(
+                    "⬇️ Download custom_cnn.py"
+                        )
+
+            def download_code():
+                code = generate_pytorch_code()
+
+                filepath = os.path.join(BASE_DIR,"models", "custom_cnn.py")
+                with open(filepath, "w") as f:
+                    f.write(code)
+
+                return filepath   # IMPORTANT: return only the path
             
             # Functions for CNN Builder
             def add_layer(layer_type_val, conv_in, conv_out, conv_kernel, conv_stride, conv_pad,
@@ -487,6 +515,13 @@ with gr.Blocks(title="PyTorch CNN Training UI") as demo:
                 fn=generate_pytorch_code,
                 outputs=code_output
             )
+            download_btn.click(
+                fn=download_code,
+                inputs=None,
+                outputs=download_btn
+            )
+
+            
 
 # --- Launch the Gradio app ---
 if __name__ == '__main__':
