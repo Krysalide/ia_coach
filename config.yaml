@@ -4,8 +4,8 @@ model:
   conv1_out_channels: 16
   conv2_out_channels: 32
   fc1_out_features: 129
-  fc2_out_features: 10
+  fc2_out_features: 12
 training:
   batch_size: 64
   learning_rate: 0.0001
-  num_epochs: 5
+  num_epochs: 25

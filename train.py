@@ -7,6 +7,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import yaml
+import sys
 
 # Charger la configuration
 with open('config.yaml', 'r') as f:
@@ -87,6 +88,7 @@ for epoch in range(config['training']['num_epochs']):
             avg_loss = running_loss / 100
             print(f'Époque [{epoch+1}/{config["training"]["num_epochs"]}], Étape [{i+1}/{len(train_loader)}], Perte: {avg_loss:.4f}')
             send_loss(avg_loss)  # Envoyer la perte via socket
+            sys.stdout.flush() 
             running_loss = 0.0
 
 # Évaluation du modèle

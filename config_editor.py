@@ -9,6 +9,8 @@ from PyQt5.QtWidgets import (
     QMessageBox, QTextEdit, QTabWidget
 )
 from PyQt5.QtCore import QProcess
+from PyQt5.QtGui import QTextCursor
+
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -59,28 +61,7 @@ class ConfigEditor(QMainWindow):
 
         tab.setLayout(layout)
         return tab
-
-    # def create_training_group(self):
-    #     group = QGroupBox("Paramètres d'entraînement")
-    #     layout = QVBoxLayout()
-
-    #     self.batch_size_input = QSpinBox()
-    #     self.batch_size_input.setRange(1, 256)
-    #     self.num_epochs_input = QSpinBox()
-    #     self.num_epochs_input.setRange(1, 100)
-    #     self.learning_rate_input = QDoubleSpinBox()
-    #     self.learning_rate_input.setRange(0.0001, 1.0)
-    #     self.learning_rate_input.setSingleStep(0.0001)
-
-    #     layout.addWidget(QLabel("Taille du batch :"))
-    #     layout.addWidget(self.batch_size_input)
-    #     layout.addWidget(QLabel("Nombre d'époques :"))
-    #     layout.addWidget(self.num_epochs_input)
-    #     layout.addWidget(QLabel("Taux d'apprentissage :"))
-    #     layout.addWidget(self.learning_rate_input)
-
-    #     group.setLayout(layout)
-    #     return group
+    
     def create_training_group(self):
         group = QGroupBox("Paramètres d'entraînement")
         layout = QVBoxLayout()
@@ -140,6 +121,7 @@ class ConfigEditor(QMainWindow):
 
         group.setLayout(layout)
         return group
+    
 
     def create_training_tab(self):
         tab = QWidget()
@@ -147,9 +129,6 @@ class ConfigEditor(QMainWindow):
 
         self.train_button = QPushButton("Lancer l'entraînement")
         self.train_button.clicked.connect(self.start_training)
-
-        self.log_area = QTextEdit()
-        self.log_area.setReadOnly(True)
 
         # Ajouter un graphique pour la perte
         self.figure = Figure()
@@ -159,11 +138,15 @@ class ConfigEditor(QMainWindow):
         self.ax.set_xlabel("Étape")
         self.ax.set_ylabel("Perte")
 
+        # Ajouter une zone de texte pour les logs
+        self.log_area = QTextEdit()
+        self.log_area.setReadOnly(True)
+
         layout.addWidget(self.train_button)
-        layout.addWidget(QLabel("Sortie de l'entraînement :"))
-        layout.addWidget(self.log_area)
         layout.addWidget(QLabel("Graphique de la perte :"))
         layout.addWidget(self.canvas)
+        layout.addWidget(QLabel("Logs de l'entraînement :"))
+        layout.addWidget(self.log_area)
 
         tab.setLayout(layout)
         return tab
@@ -219,17 +202,27 @@ class ConfigEditor(QMainWindow):
             self.ax.set_xlabel("Étape")
             self.ax.set_ylabel("Perte")
             self.canvas.draw()
+
+            # Configurer le processus pour exécuter train.py
+            self.process = QProcess()
+            self.process.readyReadStandardOutput.connect(self.update_logs)
+            self.process.readyReadStandardError.connect(self.update_logs)
             self.process.start("python", ["train.py"])
+
         except Exception as e:
             QMessageBox.warning(self, "Erreur", f"Impossible de lancer l'entraînement : {e}")
 
     def update_logs(self):
-        output = self.process.readAllStandardOutput().data().decode()
-        error = self.process.readAllStandardError().data().decode()
+        # Lire les sorties standard et d'erreur
+        output = bytes(self.process.readAllStandardOutput()).decode("utf8")
+        error = bytes(self.process.readAllStandardError()).decode("utf8")
+
         if output:
-            self.log_area.append(output)
+            self.log_area.moveCursor(QTextCursor.End)
+            self.log_area.insertPlainText(output)
         if error:
-            self.log_area.append(f"ERREUR: {error}")
+            self.log_area.moveCursor(QTextCursor.End)
+            self.log_area.insertPlainText(f"ERREUR: {error}")   
 
     def start_socket_server(self):
         HOST = '127.0.0.1'
