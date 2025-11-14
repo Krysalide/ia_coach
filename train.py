@@ -1,3 +1,5 @@
+import socket
+import struct
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -10,16 +12,6 @@ import yaml
 with open('config.yaml', 'r') as f:
     config = yaml.safe_load(f)
 
-# Récupérer les paramètres
-batch_size = config['training']['batch_size']
-num_epochs = config['training']['num_epochs']
-learning_rate = config['training']['learning_rate']
-conv1_out_channels = config['model']['conv1_out_channels']
-conv2_out_channels = config['model']['conv2_out_channels']
-fc1_out_features = config['model']['fc1_out_features']
-fc2_out_features = config['model']['fc2_out_features']
-root_dir = config['data']['root_dir']
-
 # Définir les transformations pour les données
 transform = transforms.Compose([
     transforms.ToTensor(),
@@ -28,13 +20,13 @@ transform = transforms.Compose([
 
 # Télécharger et charger les datasets
 train_dataset = torchvision.datasets.MNIST(
-    root=root_dir, train=True, transform=transform, download=True)
+    root=config['data']['root_dir'], train=True, transform=transform, download=True)
 test_dataset = torchvision.datasets.MNIST(
-    root=root_dir, train=False, transform=transform, download=True)
+    root=config['data']['root_dir'], train=False, transform=transform, download=True)
 
 # Créer les DataLoader
-train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+train_loader = DataLoader(dataset=train_dataset, batch_size=config['training']['batch_size'], shuffle=True)
+test_loader = DataLoader(dataset=test_dataset, batch_size=config['training']['batch_size'], shuffle=False)
 
 # Définir le modèle CNN
 class CNN(nn.Module):
@@ -61,12 +53,27 @@ class CNN(nn.Module):
         return x
 
 # Instancier le modèle, la fonction de perte et l'optimiseur
-model = CNN(conv1_out_channels, conv2_out_channels, fc1_out_features, fc2_out_features)
+model = CNN(
+    config['model']['conv1_out_channels'],
+    config['model']['conv2_out_channels'],
+    config['model']['fc1_out_features'],
+    config['model']['fc2_out_features']
+)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'])
+
+# Configuration du serveur socket
+HOST = '127.0.0.1'
+PORT = 65432
+
+def send_loss(loss_value):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((HOST, PORT))
+        s.sendall(struct.pack('!f', loss_value))
 
 # Boucle d'entraînement
-for epoch in range(num_epochs):
+for epoch in range(config['training']['num_epochs']):
     model.train()
     running_loss = 0.0
     for i, (images, labels) in enumerate(train_loader):
@@ -77,7 +84,9 @@ for epoch in range(num_epochs):
         optimizer.step()
         running_loss += loss.item()
         if (i+1) % 100 == 0:
-            print(f'Époque [{epoch+1}/{num_epochs}], Étape [{i+1}/{len(train_loader)}], Perte: {running_loss/100:.4f}')
+            avg_loss = running_loss / 100
+            print(f'Époque [{epoch+1}/{config["training"]["num_epochs"]}], Étape [{i+1}/{len(train_loader)}], Perte: {avg_loss:.4f}')
+            send_loss(avg_loss)  # Envoyer la perte via socket
             running_loss = 0.0
 
 # Évaluation du modèle
